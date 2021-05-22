@@ -32,6 +32,7 @@
 | gets messages count by user                 | `GET`  | `/messages/$username/stats` |                            | `{stats: [count: 239]}`                                                                    |
 | top 10 chatters by messages count           | `GET`  | `/messages/stats/top`       |                            | `{top: [{username: "user", count: 239}, ...]}`                                             |
 | gets all current messages, filtered by date | `GET`  | `/messages`                 | `{from:?$date, to:?$date}` | `{messages: [{id: id, username: "user", message: "message", replyTo:? optionalInt}, ...]}` |
+
 Фильтр по дате опционален и работает как Epoch Timestamp в миллисекундах.
 
 Docs:
