@@ -4,7 +4,7 @@ import ru.ifmo.backend_2021.quill.Queries
 
 object QueriesTest extends TestSuite {
   def tests: Tests = Tests {
-    test("Top ten by cities") - withDB { ctx => 
+    test("Top ten by cities") - withDB { ctx =>
       val result = Queries.topTenLanguagesSpokenByCities(ctx)
       assert(result ==
         List(
