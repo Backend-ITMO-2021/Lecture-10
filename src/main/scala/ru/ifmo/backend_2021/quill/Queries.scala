@@ -19,5 +19,24 @@ object Queries {
     ctx.run(q)
   }
 
-  def topTenLanguagesSpokenByPopulation(ctx: PostgresJdbcContext[LowerCase.type]): List[(String, Long)] = ???
+  def topTenLanguagesSpokenByPopulation(ctx: PostgresJdbcContext[LowerCase.type]): List[(String, Long)] = {
+    import ctx._
+
+    val q = quote {
+      query[CountryLanguage]
+        .join(query[City])
+        .on{(l, c) => l.countryCode == c.countryCode}
+        .groupBy{case (l, c) => l.language}
+        .map{case (language, lc) => (
+          language,
+          lc.map {
+            case (l, c) => l.percentage * c.population / 100
+          }.sum.map(_.toLong)
+        )}
+        .sortBy{case (language, population) => population}(Ord.descNullsLast)
+        .take(10)
+    }
+
+    ctx.run(q)
+  }
 }
