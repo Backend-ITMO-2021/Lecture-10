@@ -3,3 +3,8 @@ target
 .bsp
 data
 test-data
+
+project
+.metals
+.vscode
+.bloop
