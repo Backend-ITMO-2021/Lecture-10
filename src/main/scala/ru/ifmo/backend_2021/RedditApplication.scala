@@ -56,7 +56,7 @@ object RedditApplication extends cask.MainRoutes {
   )
 
   def messageList(filter: Option[String] = None): generic.Frag[Builder, String] = {
-    val messages = db.getMessages
+    val messages = db.getMessages(filter)
 
     def buildMessageThread(groupedMessages: Map[Option[Int], List[Message]], parentId: Option[Int] = None, depth: Int = 0): Frag = {
       val messages = groupedMessages.get(parentId)
@@ -75,8 +75,7 @@ object RedditApplication extends cask.MainRoutes {
     }
 
     if (filter.isDefined) {
-      val filtered = messages.filter(_.username == filter.get)
-      frag(for (msg <- filtered) yield renderMessage(msg))
+      frag(for (msg <- messages) yield renderMessage(msg))
     } else {
       val messagesGroupedByRoot = messages.groupBy(_.replyTo)
       buildMessageThread(messagesGroupedByRoot)
@@ -91,16 +90,6 @@ object RedditApplication extends cask.MainRoutes {
 
   @cask.postJson("/")
   def postChatMsg(username: String, message: String, replyTo: String = ""): ujson.Obj = {
-//    log.debug(name, msg)
-//    if (name == "") ujson.Obj("success" -> false, "err" -> "Name cannot be empty")
-//    else if (msg == "") ujson.Obj("success" -> false, "err" -> "Message cannot be empty")
-//    else if (name.contains("#")) ujson.Obj("success" -> false, "err" -> "Username cannot contain '#'")
-//    else synchronized {
-//      db.addMessage(Message(name, msg))
-//      connectionPool.sendAll(Ws.Text(messageList(db.getMessages).render))
-//      ujson.Obj("success" -> true, "err" -> "")
-//    }
-
     log.debug("WebView: / (POST) ", username, message, replyTo)
 
     if (username == "") ujson.Obj("success" -> false, "err" -> "Name cannot be empty")
@@ -109,7 +98,7 @@ object RedditApplication extends cask.MainRoutes {
     else if (replyTo.contains("#")) ujson.Obj("success" -> false, "err" -> "Reply To cannot contain '#'")
     else synchronized {
       db.addMessage(username, message, replyTo.toIntOption)
-      connectionPool.sendAll(Ws.Text(messageList().render))
+      connectionPool.sendAll(connection => Ws.Text(messageList(connectionPool.getFilter(connection)).render))
       ujson.Obj("success" -> true, "err" -> "")
     }
   }

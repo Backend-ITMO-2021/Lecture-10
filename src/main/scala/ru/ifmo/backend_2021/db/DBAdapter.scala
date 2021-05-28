@@ -20,12 +20,16 @@ class DBAdapter() extends MessageDB {
 
   import ctx._
 
-  def getMessages: List[Message] =
-    ctx.run(query[Message])
+  def getMessages(fl: Option[String] = None): List[Message] = {
+    if (fl.isDefined) {
+      ctx.run(query[Message].filter(_.username == lift(fl.get)))
+    } else {
+      ctx.run(query[Message])
+    }
+  }
 
   def addMessage(username: String, message: String, replyTo: Option[Int]): Unit =
     ctx.run(query[Message].insert(_.username -> lift(username), _.message -> lift(message), _.replyTo -> lift(replyTo)))
-//  lift(Message(0, username, message, replyTo))
 }
 
 
