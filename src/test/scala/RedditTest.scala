@@ -17,88 +17,54 @@ object RedditTest extends TestSuite {
       val success = requests.get(host)
 
       assert(success.text().contains("Scala Reddit"))
-      assert(success.text().contains("max"))
-      assert(success.text().contains("Hi guys!"))
-      assert(success.text().contains("anny"))
-      assert(success.text().contains("Heeeyyyy"))
-      assert(success.text().contains("anny"))
-      assert(success.text().contains("So, what do you think guys about new Apple M2 chip?"))
-      assert(success.text().contains("max"))
-      assert(success.text().contains("I think they will not release it until 2022, M1 still very efficient"))
       assert(success.statusCode == 200)
 
       val wsMsg = Await.result(wsPromise.future, Inf)
-      assert(wsMsg.contains("max"))
-      assert(wsMsg.contains("Hi guys!"))
-      assert(wsMsg.contains("anny"))
-      assert(wsMsg.contains("Heeeyyyy"))
-      assert(wsMsg.contains("anny"))
-      assert(wsMsg.contains("So, what do you think guys about new Apple M2 chip?"))
-      assert(wsMsg.contains("max"))
-      assert(wsMsg.contains("I think they will not release it until 2022, M1 still very efficient"))
 
       wsPromise = scala.concurrent.Promise[String]
-      val response = requests.post(host, data = ujson.Obj("username" -> "ilya", "message" -> "Test Message!"))
+      requests.post(host, data = ujson.Obj("username" -> "ilya", "message" -> "Test Message 1!"))
+      wsPromise = scala.concurrent.Promise[String]
+      requests.post(host, data = ujson.Obj("username" -> "ilya", "message" -> "Test Message 2!"))
+      wsPromise = scala.concurrent.Promise[String]
+      val response = requests.post(host, data = ujson.Obj("username" -> "ilya", "message" -> "Test Message 3!"))
 
       val parsed = ujson.read(response)
       assert(parsed("success") == ujson.True)
       assert(parsed("err") == ujson.Str(""))
 
-      assert(response.statusCode == 200)
-      val wsMsg2 = Await.result(wsPromise.future, Inf)
-      assert(wsMsg2.contains("max"))
-      assert(wsMsg2.contains("Hi guys!"))
-      assert(wsMsg2.contains("anny"))
-      assert(wsMsg2.contains("Heeeyyyy"))
-      assert(wsMsg2.contains("anny"))
-      assert(wsMsg2.contains("So, what do you think guys about new Apple M2 chip?"))
-      assert(wsMsg2.contains("max"))
-      assert(wsMsg2.contains("I think they will not release it until 2022, M1 still very efficient"))
-      assert(wsMsg2.contains("ilya"))
-      assert(wsMsg2.contains("Test Message!"))
-
       val success2 = requests.get(host)
-      assert(success2.text().contains("max"))
-      assert(success2.text().contains("Hi guys!"))
-      assert(success2.text().contains("anny"))
-      assert(success2.text().contains("Heeeyyyy"))
-      assert(success2.text().contains("anny"))
-      assert(success2.text().contains("So, what do you think guys about new Apple M2 chip?"))
-      assert(success2.text().contains("max"))
-      assert(success2.text().contains("I think they will not release it until 2022, M1 still very efficient"))
-      assert(success2.text().contains("ilya"))
-      assert(success2.text().contains("Test Message!"))
-      assert(success2.statusCode == 200)
+      assert(success2.text().contains("Test Message 1!"))
+      assert(success2.text().contains("Test Message 2!"))
+      assert(success2.text().contains("Test Message 3!"))
 
+      val wsMsg2 = Await.result(wsPromise.future, Inf)
+      assert(wsMsg2.contains("Test Message 1!"))
+      assert(wsMsg2.contains("Test Message 2!"))
+      assert(wsMsg2.contains("Test Message 3!"))
 
       // Nesting and Auto Id's
       assert(success2.text().contains("#1"))
       assert(success2.text().contains("#2"))
       assert(success2.text().contains("#3"))
-      assert(success2.text().contains("#4"))
-      assert(success2.text().contains("#5"))
 
       wsPromise = scala.concurrent.Promise[String]
-      val response3 = requests.post(host, data = ujson.Obj("username" -> "test", "message" -> "Test Message!", "replyTo" -> "1"))
+      requests.post(host, data = ujson.Obj("username" -> "test", "message" -> "Test Reply!", "replyTo" -> "1"))
 
       val success3 = requests.get(host)
-      assert(success3.text().contains("#6"))
-      assert(success3.text().indexOf("#6") < success3.text().indexOf("#5"))
+      assert(success3.text().contains("#4"))
+      assert(success3.text().indexOf("#4") < success3.text().indexOf("#3"))
 
       val wsMsg3 = Await.result(wsPromise.future, Inf)
-      assert(wsMsg3.contains("#6"))
-      assert(wsMsg3.indexOf("#6") < success3.text().indexOf("#5"))
-
+      assert(wsMsg3.contains("#4"))
+      assert(wsMsg3.indexOf("#4") < wsMsg3.indexOf("#3"))
 
       // Messages Filtering
       wsPromise = scala.concurrent.Promise[String]
-      wsClient.send(cask.Ws.Text("max"))
+      wsClient.send(cask.Ws.Text("test"))
 
       val wsMsg4 = Await.result(wsPromise.future, Inf)
-      assert(wsMsg4.contains("max"))
-      assert(wsMsg4.contains("#1"))
-      assert(wsMsg4.contains("#4"))
-      assert(!wsMsg4.contains("anny"))
+      assert(wsMsg4.contains("test"))
+      assert(!wsMsg4.contains("ilya"))
     }
 
     test("failure") - withServer(RedditApplication) { host =>
