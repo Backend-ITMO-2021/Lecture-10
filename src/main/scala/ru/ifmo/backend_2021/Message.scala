@@ -1,12 +1,15 @@
 package ru.ifmo.backend_2021
 
-case class Message(username: String, message: String) {
-  def toFile: String = s"$username#$message"
-}
+import scalatags.Text
+import scalatags.Text.all._
 
-object Message {
-  def apply(fromString: String): Message = {
-    val List(username, message) = fromString.split("#").toList
-    Message(username, message)
+
+case class Message(id: Int, replyTo: Option[Int], username: String, message: String, date: String) {
+  def toFile: String = s"$username#$message"
+  def toListItemStr: Text.TypedTag[String] = {
+
+    span(i(s"#${id.toString}"), " ", if(replyTo.isDefined) s"-> #${replyTo.get}" else "  ", "   ",  b(username), " ", message)
   }
 }
+
+case class MessageDTO(replyTo: Option[Int], username: String, message: String)
