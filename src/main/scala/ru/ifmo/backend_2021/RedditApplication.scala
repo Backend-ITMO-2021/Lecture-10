@@ -95,7 +95,7 @@ object RedditApplication extends cask.MainRoutes {
                 )
               ),
               div(id := "messageList", style := "margin-top: 27px;")(
-                messageList(db.getMessages)
+                messageList(db.getMessages(None))
               ),
               div(id := "errorDiv", color.red),
               form(onsubmit := "return submitForm()", display := "block", marginRight := "10px")(
@@ -119,7 +119,7 @@ object RedditApplication extends cask.MainRoutes {
 
   @cask.websocket("/subscribe/:userName")
   def subscribe(userName: String): WsHandler = connectionPool.wsHandler{ connection =>
-    connectionPool.send(Ws.Text(messageList(db.getMessages).render))(connection)
+    connectionPool.send(Ws.Text(messageList(db.getMessages(None)).render))(connection)
   }(userName)
 
   def renderList(): ujson.Obj = {
@@ -138,20 +138,22 @@ object RedditApplication extends cask.MainRoutes {
     else if (name.contains("#") || to.contains("#")) ujson.Obj("success" -> false, "err" -> "Username cannot contain '#'")
     else if (to == "_") ujson.Obj("success" -> false, "err" -> "Target user cannot be '_'")
     else synchronized {
-      db.getUserByNickname(to) match {
-        case Some(toUser) =>
-          db.addMessage(MessageDTO(Some(toUser.id), name, msg)) //todo
-          renderList()
-          ujson.Obj("success" -> true, "err" -> "")
-        case None => ujson.Obj("success" -> false, "err" -> "No such replyTo user")
+      if (to.nonEmpty) {
+        db.getUserByNickname(to) match {
+          case Some(toUser) =>
+            db.addMessage(MessageDTO(Some(toUser.id), name, msg)) //todo
+            renderList()
+            ujson.Obj("success" -> true, "err" -> "")
+          case None => ujson.Obj("success" -> false, "err" -> "No such replyTo user")
+        }
+      } else {
+        db.addMessage(MessageDTO(None, name, msg))
+        ujson.Obj("success" -> true, "err" -> "")
       }
     }
   }
 
-  def userFilter(filter: Option[String]): List[Message] = filter match {
-    case Some(filterValue) => db.getMessages.filter(msg => msg.username.contains(filterValue))
-    case None => db.getMessages
-  }
+  def userFilter(filter: Option[String]): List[Message] = db.getMessages(filter)
 
   def messageList(messages: List[Message], isCascade: Boolean = false): generic.Frag[Builder, String] = {
     if (messages.isEmpty) {
@@ -210,18 +212,40 @@ object RedditApplication extends cask.MainRoutes {
   // ------------------ API -------------------------
   def messagesToJSON(messages: List[Message]): List[ujson.Obj] = for (Message(id, replyTo, username, msg, date) <- messages) yield ujson.Obj("id" -> id, "username" -> username, "msg" -> msg, "date" -> date)
 
-  @cask.get("/messages")
-  def getAllMessages(): Obj = ujson.Obj(
-    "messages" -> messagesToJSON(db.getMessages)
-  )
-
-  @cask.get("/messages/:user")
-  def getAllUserMessages(user: String): Obj = ujson.Obj(
-    "messages" -> messagesToJSON(db.getMessages.filter(msg => msg.username.contains(user)))
-  )
-
   @cask.postJson("/messages")
   def postMsg(to: String, name: String, msg: String): Obj = postChatMsg(to, name, msg)
+
+  @cask.get("/messages/:username")
+  def getAllUserMessages(username: String): ujson.Obj = ujson.Obj(
+    "messages" -> messagesToJSON(db.getMessages(Some(username)))
+  )
+
+  @cask.get("/messages")
+  def getAllMessages(from: Option[Long] = None, to: Option[Long] = None): ujson.Obj = {
+      println("here", from.getOrElse(1L), to.getOrElse(3L))
+        ujson.Obj(
+          "messages" -> messagesToJSON(db.getMessagesFilteredByDate(from, to))
+        )
+  }
+
+  @cask.get("/messages/:username/stats")
+  def getUserStats(username: String): ujson.Obj =
+    ujson.Obj(
+      "stats" -> List(("count", db.getUserStatsByNickname(username)))
+    )
+
+  @cask.get("/messages/:username/top")
+  def getTopChatters(username: String): ujson.Obj = {
+    if (username != "stats") {
+      throw new IllegalArgumentException()
+    }
+    ujson.Obj(
+      "top" -> db.getMessagesStatsTop()
+    )
+  }
+
+
+
 
   //  ---------------- INITIALIZE --------------------
   log.debug(s"Starting at $serverUrl")

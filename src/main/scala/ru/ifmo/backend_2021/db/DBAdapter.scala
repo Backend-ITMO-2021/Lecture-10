@@ -5,6 +5,9 @@ import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import io.getquill.{LowerCase, PostgresJdbcContext}
 import ru.ifmo.backend_2021.{AppUser, AppUserDTO, Message, MessageDTO}
 
+import java.sql.Timestamp
+import java.time.Instant
+
 class DBAdapter() extends MessageDB {
   val server: EmbeddedPostgres = EmbeddedPostgres.builder()
     .setDataDirectory("./data")
@@ -22,8 +25,11 @@ class DBAdapter() extends MessageDB {
 
   import ctx._
 
-  def getMessages: List[Message] =
-    ctx.run(query[Message])
+  def getMessages(filter: Option[String]): List[Message] = filter match {
+    case Some(filterStr) => ctx.run(query[Message].filter(_.username == lift(filterStr)))
+    case None =>ctx.run(query[Message])
+  }
+
   def addMessage(messageDto: MessageDTO): Unit =
     ctx.run(query[Message].insert(
       _.replyTo -> lift(messageDto.replyTo),
@@ -42,8 +48,27 @@ class DBAdapter() extends MessageDB {
     ctx.run(query[AppUser].filter(_.nickname == lift(nick))).headOption
   }
 
-  override def updateUserFilterById(id: Int, filter: Option[String]): Unit = {
+  def updateUserFilterById(id: Int, filter: Option[String]): Unit = {
     ctx.run(query[AppUser].filter(_.id == lift(id)).update(_.userFilter -> lift(filter)))
+  }
+
+  def getUserStatsByNickname(nickName: String): Long = {
+    ctx.run(query[Message].filter(_.username == lift(nickName)).size)
+  }
+
+  def getMessagesStatsTop(): List[(String, Long)] = {
+    ctx.run(query[Message].groupBy{case (message) => message.username}.map{ case (str, value) => (str, value.size)})
+  }
+
+  def dateToTimestamp(inDate: String): Long = Timestamp.from(Instant.parse(inDate.replace(" ", "T").concat("Z"))).getTime / 1000
+
+  def getMessagesFilteredByDate(from: Option[Long], to: Option[Long]): List[Message] = (from, to) match {
+    case (Some(fromT), Some(toT)) =>
+      val res = ctx.run(query[Message])
+//      println(res.map(p => dateToTimestamp(p.date)))
+      res.filter(p => dateToTimestamp(p.date) > fromT).filter(p => dateToTimestamp(p.date) < toT)
+    case (_, _) =>
+      ctx.run(query[Message])
   }
 }
 
