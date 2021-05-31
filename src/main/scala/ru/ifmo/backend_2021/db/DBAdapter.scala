@@ -62,8 +62,8 @@ class DBAdapter(clear: Boolean) extends MessageDB {
       def <=(right: Date) = quote(infix"$left <= $right".as[Boolean])
     }
 
-    ctx.run(dynamicQuery[Message]
-      .filterOpt(from)((m, d) => quote(m.sent >= d))
-      .filterOpt(to)((m, d) => quote(m.sent <= d)))
+    ctx.run(query[Message]
+      .filter(_.sent >= lift(from.getOrElse(new Date(0))))
+      .filter(_.sent <= lift(to.getOrElse(new Date()))))
   }
 }
