@@ -25,16 +25,16 @@ object QueriesTest extends TestSuite {
       val result = Queries.topTenLanguagesSpokenByPopulation(ctx)
       assert(result ==
         List(
-          ("Chinese", 16750695023L),
-          ("Spanish", 16642150880L),
-          ("English", 11116888890L),
-          ("Portuguese", 8529540725L),
-          ("Japanese", 7776439163L),
-          ("Russian", 7208461083L),
-          ("Arabic", 6668091278L),
-          ("Hindi", 4927731070L),
-          ("Korean", 4605782000L),
-          ("German", 2848373842L)
+          ("Chinese", 167506950L),
+          ("Spanish", 166421508L),
+          ("English", 111168888L),
+          ("Portuguese", 85295407L),
+          ("Japanese", 77764391L),
+          ("Russian", 72084610L),
+          ("Arabic", 66680912L),
+          ("Hindi", 49277310L),
+          ("Korean", 46057820L),
+          ("German", 28483738L)
         )
       )
     }

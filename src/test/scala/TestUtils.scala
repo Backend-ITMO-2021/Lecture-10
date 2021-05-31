@@ -2,6 +2,7 @@ import com.opentable.db.postgres.embedded.EmbeddedPostgres
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
 import io.getquill.{LowerCase, PostgresJdbcContext}
 import ru.ifmo.backend_2021.utils.FinallyClose
+import ujson.{Readable, Value}
 
 import java.io.File
 import scala.io.Source
@@ -44,4 +45,7 @@ object TestUtils {
     directory.deleteRecursively()
     result.get
   }
+
+  def readJsonAndAssert(r: Readable)(f: Value.Value => Boolean): Unit =
+    assert(f(ujson.read(r)))
 }
