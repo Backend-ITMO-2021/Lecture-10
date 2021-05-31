@@ -237,14 +237,15 @@ object RedditTest extends TestSuite {
         "stats" -> ujson.Obj("count" -> 1)
       ))
 
-      readJsonAndAssert(requests.get(s"$host/messages/stats/top"))(_ == ujson.Obj(
-        "top" -> ujson.Arr(
-          ujson.Obj("username" -> "ilya", "count" -> 2),
+      readJsonAndAssert(requests.get(s"$host/messages/stats/top")) { resp => List(
+        resp("top").arr.size == 4,
+        resp("top")(0) == ujson.Obj("username" -> "ilya", "count" -> 2),
+        Set(resp("top")(1), resp("top")(2), resp("top")(3)) == Set(
           ujson.Obj("username" -> "ventus976", "count" -> 1),
           ujson.Obj("username" -> "oleg", "count" -> 1),
           ujson.Obj("username" -> "XimbalaHu3", "count" -> 1),
         )
-      ))
+      ).forall(identity) }
 
       wsPromise = scala.concurrent.Promise[String]
       val response4 = requests.post(s"$host/messages", data = ujson.Obj("username" -> "oleg", "message" -> "Test Message 3!", "replyTo" -> 4))
@@ -338,14 +339,16 @@ object RedditTest extends TestSuite {
         "stats" -> ujson.Obj("count" -> 2)
       ))
 
-      readJsonAndAssert(requests.get(s"$host/messages/stats/top"))(_ == ujson.Obj(
-        "top" -> ujson.Arr(
-          ujson.Obj("username" -> "oleg", "count" -> 2),
+      readJsonAndAssert(requests.get(s"$host/messages/stats/top")) { resp => List(
+        Set(resp("top")(0), resp("top")(1)) == Set(
           ujson.Obj("username" -> "ilya", "count" -> 2),
+          ujson.Obj("username" -> "oleg", "count" -> 2),
+        ),
+        Set(resp("top")(2), resp("top")(3)) == Set(
           ujson.Obj("username" -> "ventus976", "count" -> 1),
           ujson.Obj("username" -> "XimbalaHu3", "count" -> 1),
         )
-      ))
+      ).forall(identity) }
 
       readJsonAndAssert(requests.get(s"$host/messages?to=$to"))(_ == ujson.Obj(
         "messages" -> ujson.Arr(
