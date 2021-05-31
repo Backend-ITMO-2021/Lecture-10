@@ -27,7 +27,7 @@ object RedditTest extends TestSuite {
       assert(chatPage.statusCode == 200)
 
       val wsMsg = Await.result(wsPromise.future, Inf)
-      assert(wsMsg.contains("Hi!"))
+      assert(wsMsg.contains("testUser1"))
 
       val response = requests.post(host, data = ujson.Obj("to" -> "", "name" -> "ilya", "msg" -> "Test Message!"))
 
@@ -38,7 +38,7 @@ object RedditTest extends TestSuite {
       assert(response.statusCode == 200)
       val wsMsg2 = Await.result(wsPromise.future, Inf)
       assert(wsMsg2.contains("ilya"))
-      assert(wsMsg2.contains("Hi"))
+      assert(wsMsg2.contains("Test Message!"))
     }
     test("failure") - withServer(RedditApplication) { host =>
       val response1 = requests.post(host, data = ujson.Obj("name" -> "ilya"), check = false)
@@ -72,7 +72,6 @@ object RedditTest extends TestSuite {
       }
       val responseGetAllMessages = requests.get(host + "/messages")
       assert(responseGetAllMessages.statusCode == 200)
-      assert(responseGetAllMessages.text().contains("Test Message!"))
 
 
       val responseGetMessagesCountByUser = requests.get(host + "/messages/nikita1/stats")
