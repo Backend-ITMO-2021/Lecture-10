@@ -34,15 +34,13 @@ class ConnectionPoolImpl extends ConnectionPool {
   def send(event: Event): WsChannelActor => Unit = _.send(event)
   def sendAll(eventActor: WsChannelActor => Event): Unit = for (conn <- synchronized(openConnections)) send(eventActor(conn))(conn)
   def addConnection(connection: WsChannelActor)(nickName: String)(implicit ac: castor.Context, log: Logger) = {
-    println("-1")
+    println("WS: new user")
     synchronized {
       openConnections += connection
+      val user = getOrCreateAppUser(nickName)
+      openConnectionsUser += connection -> user
+      if (user.userFilter.isDefined) connection.send(cask.Ws.Text(s"filter#${user.userFilter.getOrElse("")}"))
     }
-
-    println("case")
-    val user = getOrCreateAppUser(nickName)
-    openConnectionsUser += connection -> user
-    if (user.userFilter.isDefined) connection.send(cask.Ws.Text(s"filter#${user.userFilter.getOrElse("")}"))
     connection.send(cask.Ws.Text(messageList(userFilter(None)).render))
   }
   def wsHandler(onConnect: WsChannelActor => Unit)(nickName: String)(implicit ac: castor.Context, log: Logger): WsHandler = WsHandler { connection =>

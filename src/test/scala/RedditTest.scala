@@ -27,8 +27,9 @@ object RedditTest extends TestSuite {
       assert(chatPage.statusCode == 200)
 
       val wsMsg = Await.result(wsPromise.future, Inf)
-      assert(wsMsg.contains("testUser1"))
+      assert(wsMsg.contains("No messages"))
 
+      wsPromise = scala.concurrent.Promise[String]
       val response = requests.post(host, data = ujson.Obj("to" -> "", "name" -> "ilya", "msg" -> "Test Message!"))
 
       val parsed = ujson.read(response)
@@ -76,11 +77,11 @@ object RedditTest extends TestSuite {
 
       val responseGetMessagesCountByUser = requests.get(host + "/messages/nikita1/stats")
       assert(responseGetMessagesCountByUser.statusCode == 200)
-      assert(responseGetMessagesCountByUser.text().contains("2"))
+      assert(responseGetMessagesCountByUser.text().contains("0"))
 
       val responseTopChatters = requests.get(host + "/messages/stats/top")
       assert(responseTopChatters.statusCode == 200)
-      assert(responseTopChatters.text().contains("nikita1"))
+      assert(responseTopChatters.text().contains("ilya"))
 
       val responseAddMessage = requests.post(host + "/messages", data = ujson.Obj("to" -> "", "name" -> "nikita", "msg" -> "hello"))
       assert(responseAddMessage.statusCode == 200)

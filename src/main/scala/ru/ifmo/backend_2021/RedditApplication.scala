@@ -148,6 +148,7 @@ object RedditApplication extends cask.MainRoutes {
         }
       } else {
         db.addMessage(MessageDTO(None, name, msg))
+        renderList()
         ujson.Obj("success" -> true, "err" -> "")
       }
     }
