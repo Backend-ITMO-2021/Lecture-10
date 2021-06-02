@@ -9,7 +9,7 @@ class DBAdapter() extends MessageDB {
   val server: EmbeddedPostgres = EmbeddedPostgres.builder()
     .setDataDirectory("./data")
     .setCleanDataDirectory(false)
-    .setPort(5430)
+    .setPort(5432)
     .start()
   val pgDataSource = new org.postgresql.ds.PGSimpleDataSource()
   pgDataSource.setUser("postgres")
