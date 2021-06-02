@@ -139,6 +139,10 @@ object RedditTest extends TestSuite {
       val api7 = requests.get(s"$host/messages?to=$from")
       val apiMsg7 = ujson.read(api7)
       assert(apiMsg7("messages").arr.length == 7)
+
+      val api8 = requests.get(s"$host/messages?from=0&to=0")
+      val apiMsg8 = ujson.read(api8)
+      assert(apiMsg8("messages").arr.length == 0)
     }
     test("failure") - withServer(RedditApplication) { host =>
       val response1 =
