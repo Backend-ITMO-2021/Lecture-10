@@ -12,11 +12,15 @@ object WsConnectionPool {
 
 class ConnectionPoolImpl extends ConnectionPool {
   private var openConnections: Set[WsChannelActor] = Set.empty[WsChannelActor]
+  private var channelFilters: Map[WsChannelActor, String] =
+    Map.empty[WsChannelActor, String]
   def getConnections: List[WsChannelActor] =
     synchronized(openConnections.toList)
   def send(event: Event): WsChannelActor => Unit = _.send(event)
-  def sendAll(event: Event): Unit = for (conn <- synchronized(openConnections))
-    send(event)(conn)
+  def sendAll(event: WsChannelActor => Event): Unit = for (
+    conn <- synchronized(openConnections)
+  )
+    send(event(conn))(conn)
   def addConnection(
       connection: WsChannelActor
   )(implicit ac: castor.Context, log: Logger): WsActor = {
@@ -25,6 +29,7 @@ class ConnectionPoolImpl extends ConnectionPool {
     }
     WsActor { case Ws.Close(_, _) =>
       synchronized {
+        channelFilters -= connection
         openConnections -= connection
       }
     }
@@ -40,11 +45,15 @@ class ConnectionPoolImpl extends ConnectionPool {
       case cask.Ws.Text(data) => {
         if (data.contains("filter?=")) {
           val username = data.replace("filter?=", "")
+          channelFilters += connection -> username
           connection.send(cask.Ws.Text(messageFilter(username).render))
         } else {
           connection.send(cask.Ws.Text(messageList().render))
         }
       }
     }
+  }
+  def getChannelFilter(channel: WsChannelActor): Option[String] = {
+    channelFilters.get(channel)
   }
 }

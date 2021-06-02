@@ -7,6 +7,9 @@ import cask.util.Ws.Event
 
 trait ConnectionPool {
   def send(event: Event): WsChannelActor => Unit
-  def sendAll(event: Event): Unit
-  def wsHandler(onConnect: WsChannelActor => Unit)(implicit ac: castor.Context, log: Logger): WsHandler
+  def sendAll(event: WsChannelActor => Event): Unit
+  def wsHandler(
+      onConnect: WsChannelActor => Unit
+  )(implicit ac: castor.Context, log: Logger): WsHandler
+  def getChannelFilter(channel: WsChannelActor): Option[String]
 }

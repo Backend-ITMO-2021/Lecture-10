@@ -73,8 +73,11 @@ object RedditApplication extends cask.MainRoutes {
       )
   }
 
-  def messageList(): generic.Frag[Builder, String] = {
-    messagesThread(db.getMessages.groupBy(_.parentId))
+  def messageList(
+      filter: Option[String] = None
+  ): generic.Frag[Builder, String] = {
+    if (filter.nonEmpty) messageFilter(filter.get)
+    else messagesThread(db.getMessages.groupBy(_.parentId))
   }
 
   def messageFilter(username: String): generic.Frag[Builder, String] = {
@@ -113,7 +116,11 @@ object RedditApplication extends cask.MainRoutes {
           msg,
           parentOption
         )
-        connectionPool.sendAll(Ws.Text(messageList().render))
+        connectionPool.sendAll(connection =>
+          Ws.Text(
+            messageList(connectionPool.getChannelFilter(connection)).render
+          )
+        )
         ujson.Obj("success" -> true, "err" -> "")
       }
   }
@@ -138,7 +145,11 @@ object RedditApplication extends cask.MainRoutes {
         message,
         if (replyTo > 0) Option(replyTo) else None
       )
-      connectionPool.sendAll(Ws.Text(messageList().render))
+      connectionPool.sendAll(connection =>
+        Ws.Text(
+          messageList(connectionPool.getChannelFilter(connection)).render
+        )
+      )
       ujson.Obj("success" -> true, "err" -> "")
     }
   }
