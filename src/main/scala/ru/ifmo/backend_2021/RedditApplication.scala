@@ -26,10 +26,15 @@ object RedditApplication extends cask.MainRoutes {
       ),
       body(
         div(cls := "container")(
-          h1("Reddit: Swain is mad :("),
+          h1("Reddit: Thresh is mad :("),
           div(id := "messageList")(messageList()),
           div(id := "errorDiv", color.red),
           form(onsubmit := "return submitForm()")(
+            input(
+              `type` := "text",
+              id := "parentInput",
+              placeholder := "Reply (Optional)"
+            ),
             input(
               `type` := "text",
               id := "nameInput",
@@ -41,6 +46,14 @@ object RedditApplication extends cask.MainRoutes {
               placeholder := "Write a message!"
             ),
             input(`type` := "submit", value := "Send")
+          ),
+          form(onsubmit := "return submitFilter()")(
+            input(
+              `type` := "text",
+              id := "filterInput",
+              placeholder := "Username"
+            ),
+            input(`type` := "submit", value := "Filter")
           )
         )
       )
@@ -65,7 +78,7 @@ object RedditApplication extends cask.MainRoutes {
   }
 
   def messageFilter(username: String): generic.Frag[Builder, String] = {
-    val messages = db.getMessages.filter(_.username == username)
+    val messages = db.getUserMessages(username)
     for (message <- messages)
       yield ul(
         li(s"#${message.id} ", b(message.username), " ", message.message)
@@ -94,10 +107,11 @@ object RedditApplication extends cask.MainRoutes {
       ujson.Obj("success" -> false, "err" -> "Reply message doesn't exist")
     else
       synchronized {
-        val messageId = db.getMessages.length + 1
         val parentOption = parentId.toIntOption
         db.addMessage(
-          Message(messageId, username, msg, parentOption)
+          username,
+          msg,
+          parentOption
         )
         connectionPool.sendAll(Ws.Text(messageList().render))
         ujson.Obj("success" -> true, "err" -> "")
@@ -110,7 +124,6 @@ object RedditApplication extends cask.MainRoutes {
       message: String,
       replyTo: Int = 0
   ): ujson.Obj = {
-    println(db.getMessages.exists(_.id == replyTo))
     if (username == "")
       ujson.Obj("success" -> false, "err" -> "Name cannot be empty")
     else if (message == "")
@@ -120,9 +133,10 @@ object RedditApplication extends cask.MainRoutes {
     else if (replyTo != 0 && !db.getMessages.exists(_.id == replyTo))
       ujson.Obj("success" -> false, "err" -> "Reply message doesn't exist")
     else {
-      val messageId = db.getMessages.length + 1
       db.addMessage(
-        Message(messageId, username, message, Option(replyTo))
+        username,
+        message,
+        if (replyTo > 0) Option(replyTo) else None
       )
       connectionPool.sendAll(Ws.Text(messageList().render))
       ujson.Obj("success" -> true, "err" -> "")
@@ -130,22 +144,42 @@ object RedditApplication extends cask.MainRoutes {
   }
 
   @cask.get("/messages/:username")
-  def getUserMessage(username: String): ujson.Obj =
-    ujson.Obj(
-      "username" -> username,
-      "messages" -> db.getMessages.filter(_.username == username).map(_.message)
-    )
+  def getUserMessage(username: String): ujson.Obj = ujson.Obj(
+    "username" -> username,
+    "messages" -> db.getUserMessages(username).map(_.message)
+  )
 
   @cask.get("/messages")
-  def getMessages(): ujson.Obj =
-    ujson.Obj("messages" -> db.getMessages.map(message => {
+  def getMessages(
+      from: Option[Long] = None,
+      to: Option[Long] = None
+  ): ujson.Obj = ujson.Obj(
+    "messages" -> db
+      .getMessagesByDate(from, to)
+      .map(message => {
+        ujson.Obj(
+          "id" -> message.id,
+          "username" -> message.username,
+          "message" -> message.message,
+          "parentId" -> message.parentId
+        )
+      })
+  )
+
+  @cask.get("/messages/:username/stats")
+  def getUserStats(username: String): ujson.Obj = ujson.Obj(
+    "stats" -> ujson.Arr(ujson.Obj("count" -> db.getUserStats(username)))
+  )
+
+  @cask.get("/stats/top")
+  def getTopUsers(): ujson.Obj = ujson.Obj(
+    "top" -> db.getTopUsers.map(v => {
       ujson.Obj(
-        "id" -> message.id,
-        "username" -> message.username,
-        "message" -> message.message,
-        "parentId" -> message.parentId
+        "username" -> v._1,
+        "count" -> v._2
       )
-    }))
+    })
+  )
 
   log.debug(s"Starting at $serverUrl")
   initialize()
