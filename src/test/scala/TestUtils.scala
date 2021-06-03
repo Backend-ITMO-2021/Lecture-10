@@ -29,6 +29,7 @@ object TestUtils {
       .start()
     val pgDataSource = new org.postgresql.ds.PGSimpleDataSource()
     pgDataSource.setUser("postgres")
+    pgDataSource.setPassword("123")
     pgDataSource.setPortNumber(1521)
     val config = new HikariConfig()
     config.setDataSource(pgDataSource)

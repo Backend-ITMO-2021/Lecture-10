@@ -5,6 +5,11 @@
 -- Finland, http://www.stat.fi/worldinfigures.
 --
 
+-- DROP TABLE IF EXISTS city CASCADE;
+-- DROP TABLE IF EXISTS countrylanguage CASCADE;
+-- DROP TABLE IF EXISTS country CASCADE;
+
+
 CREATE TABLE IF NOT EXISTS city (
     id integer NOT NULL,
     name varchar NOT NULL,
@@ -12,7 +17,7 @@ CREATE TABLE IF NOT EXISTS city (
     district varchar NOT NULL,
     population integer NOT NULL
 );
-
+-- DROP TABLE IF EXISTS country CASCADE;
 CREATE TABLE IF NOT EXISTS country (
     code character(3) NOT NULL,
     name varchar NOT NULL,
@@ -32,7 +37,7 @@ CREATE TABLE IF NOT EXISTS country (
     -- TODO: we can do this with CREATE DOMAIN
     -- CONSTRAINT country_continent_check CHECK ((((((((continent = 'Asia'::text) OR (continent = 'Europe'::text)) OR (continent = 'North America'::text)) OR (continent = 'Africa'::text)) OR (continent = 'Oceania'::text)) OR (continent = 'Antarctica'::text)) OR (continent = 'South America'::text)));
 );
-
+-- DROP TABLE IF EXISTS countrylanguage CASCADE;
 CREATE TABLE IF NOT EXISTS countrylanguage (
     countrycode character(3) NOT NULL,
     language varchar NOT NULL,
