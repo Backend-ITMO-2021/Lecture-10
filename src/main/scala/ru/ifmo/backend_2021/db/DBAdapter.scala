@@ -7,6 +7,7 @@ import ru.ifmo.backend_2021.{AppUser, AppUserDTO, Message, MessageDTO}
 
 import java.sql.Timestamp
 import java.time.Instant
+import java.util.Date
 
 class DBAdapter() extends MessageDB {
   val server: EmbeddedPostgres = EmbeddedPostgres.builder()
@@ -60,13 +61,13 @@ class DBAdapter() extends MessageDB {
     ctx.run(query[Message].groupBy{case (message) => message.username}.map{ case (str, value) => (str, value.size)})
   }
 
-  def dateToTimestamp(inDate: String): Long = Timestamp.from(Instant.parse(inDate.replace(" ", "T").concat("Z"))).getTime / 1000
-
   def getMessagesFilteredByDate(from: Option[Long], to: Option[Long]): List[Message] = (from, to) match {
-    case (Some(fromT), Some(toT)) =>
-      val res = ctx.run(query[Message])
-//      println(res.map(p => dateToTimestamp(p.date)))
-      res.filter(p => dateToTimestamp(p.date) > fromT).filter(p => dateToTimestamp(p.date) < toT)
+    case (Some(fromL), Some(toL)) =>
+      ctx.run(query[Message]
+        .filter(msg => infix"${msg.date} > ${lift(new Date(fromL))}".as[Boolean])
+        .filter(msg => infix"${msg.date} < ${lift(new Date(toL))}".as[Boolean])
+      )
+
     case (_, _) =>
       ctx.run(query[Message])
   }

@@ -169,7 +169,7 @@ object RedditApplication extends cask.MainRoutes {
           if(replyTo.isDefined) s"-> #${replyTo.get}" else "  ",
           "   ",  b(name),
           " ", msg,
-          " ", date)
+          " ", date.toString)
         )
         case true =>
           val withoutTo = mutable.LinkedHashMap[Int, Message]()
@@ -211,7 +211,7 @@ object RedditApplication extends cask.MainRoutes {
   }
 
   // ------------------ API -------------------------
-  def messagesToJSON(messages: List[Message]): List[ujson.Obj] = for (Message(id, replyTo, username, msg, date) <- messages) yield ujson.Obj("id" -> id, "username" -> username, "msg" -> msg, "date" -> date)
+  def messagesToJSON(messages: List[Message]): List[ujson.Obj] = for (Message(id, replyTo, username, msg, date) <- messages) yield ujson.Obj("id" -> id, "username" -> username, "msg" -> msg, "date" -> date.toString)
 
   @cask.postJson("/messages")
   def postMsg(to: String, name: String, msg: String): Obj = postChatMsg(to, name, msg)

@@ -3,6 +3,8 @@ package ru.ifmo.backend_2021
 import scalatags.Text
 import scalatags.Text.all._
 
+import java.sql.Timestamp
+
 
 case class Message(id: Int, replyTo: Option[Int], username: String, message: String, date: String) {
   def toFile: String = s"$username#$message"
