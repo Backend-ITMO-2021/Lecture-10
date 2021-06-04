@@ -11,12 +11,12 @@ import scala.util.Try
 object TestUtils {
   def withServer[T](example: cask.main.Main)(f: String => T): T = {
     val server = io.undertow.Undertow.builder
-      .addHttpListener(8081, "localhost")
+      .addHttpListener(8080, "localhost")
       .setHandler(example.defaultHandler)
       .build
     server.start()
     val res =
-      try f("http://localhost:8081")
+      try f("http://localhost:8080")
       finally server.stop()
     res
   }
@@ -29,6 +29,7 @@ object TestUtils {
       .start()
     val pgDataSource = new org.postgresql.ds.PGSimpleDataSource()
     pgDataSource.setUser("postgres")
+    pgDataSource.setPassword("12345")
     pgDataSource.setPortNumber(1521)
     val config = new HikariConfig()
     config.setDataSource(pgDataSource)
