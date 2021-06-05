@@ -16,16 +16,20 @@ class DBAdapter() extends MessageDB {
   val hikariConfig = new HikariConfig()
   hikariConfig.setDataSource(pgDataSource)
   val ctx = new PostgresJdbcContext(LowerCase, new HikariDataSource(hikariConfig))
-  ctx.executeAction("CREATE TABLE IF NOT EXISTS message (username text, message text);")
+  ctx.executeAction("CREATE TABLE IF NOT EXISTS message (" +
+    "id serial, " +
+    "time timestamp, " +
+    "username text, " +
+    "message text, " +
+    "replyTo integer);")
 
   import ctx._
 
   def getMessages: List[Message] =
     ctx.run(query[Message])
-  def addMessage(message: Message): Unit =
+  def getMessages(filter: String): List[Message] =
+    if (filter == "") getMessages else ctx.run(query[Message].filter(_.username == lift(filter)).map(msg => Message(msg.id, msg.time, msg.username, msg.message, None)))
+  def addMessage(message: Message): Unit = {
     ctx.run(query[Message].insert(lift(message)))
+  }
 }
-
-
-
-

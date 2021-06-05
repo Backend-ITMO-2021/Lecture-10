@@ -9,6 +9,9 @@ import scalatags.Text.all._
 import scalatags.generic
 import scalatags.text.Builder
 
+import java.text.DateFormat
+import java.util.Date
+
 object RedditApplication extends cask.MainRoutes {
   val serverUrl = s"http://$host:$port"
   val db: MessageDB = new DBAdapter()
@@ -32,14 +35,37 @@ object RedditApplication extends cask.MainRoutes {
           form(onsubmit := "return submitForm()")(
             input(`type` := "text", id := "nameInput", placeholder := "Username"),
             input(`type` := "text", id := "msgInput", placeholder := "Write a message!"),
+            input(`type` := "text", id := "replyToInput", placeholder := "Reply to (message id)"),
             input(`type` := "submit", value := "Send"),
+          ),
+          form(onsubmit := "return applyFilter()")(
+            input(`type` := "text", id := "filterInput", placeholder := "Username to filter by"),
+            input(`type` := "submit", value := "Filter"),
           )
         )
       )
     )
   )
 
-  def messageList(): generic.Frag[Builder, String] = frag(for (Message(name, msg) <- db.getMessages) yield p(b(name), " ", msg))
+  def toInt(s: String): Int = {
+    try {
+      s.toInt
+    } catch {
+      case e: NumberFormatException => 0
+    }
+  }
+
+  def messageList(filter: Option[String] = None): generic.Frag[Builder, String] = {
+    def addFollowing(depth: Int, messages: List[Message]): generic.Frag[Builder, String] = {
+      if (messages.nonEmpty) {
+        for (message <- messages)
+          yield frag(p(css("white-space") := "pre", "   ".repeat(depth), "#", message.id, " ", b(message.username), " ", message.message),
+          addFollowing(depth + 1, db.getMessages(filter.getOrElse("")).filter(_.replyTo == Option(message.id))))
+      }
+    }
+
+    addFollowing(0, db.getMessages(filter.getOrElse("")).filter(_.replyTo.isEmpty))
+  }
 
   @cask.websocket("/subscribe")
   def subscribe(): WsHandler = connectionPool.wsHandler { connection =>
@@ -47,14 +73,16 @@ object RedditApplication extends cask.MainRoutes {
   }
 
   @cask.postJson("/")
-  def postChatMsg(name: String, msg: String): ujson.Obj = {
-    log.debug(name, msg)
+  def postChatMsg(name: String, msg: String, replyTo: String = ""): ujson.Obj = {
+    log.debug(name, msg, replyTo)
     if (name == "") ujson.Obj("success" -> false, "err" -> "Name cannot be empty")
     else if (msg == "") ujson.Obj("success" -> false, "err" -> "Message cannot be empty")
     else if (name.contains("#")) ujson.Obj("success" -> false, "err" -> "Username cannot contain '#'")
+    else if (replyTo.contains("#")) ujson.Obj("success" -> false, "err" -> "Id to replying must be without '#'")
+    else if (toInt(replyTo) > db.getMessages.length) ujson.Obj("success" -> false, "err" -> "Message with given id to replying doesn't exist")
     else synchronized {
-      db.addMessage(Message(name, msg))
-      connectionPool.sendAll(Ws.Text(messageList().render))
+      db.addMessage(Message(db.getMessages.length + 1, new Date(), name, msg, replyTo.toIntOption))
+      connectionPool.sendAll(connection => Ws.Text(messageList(connectionPool.getFilter(connection)).render))
       ujson.Obj("success" -> true, "err" -> "")
     }
   }
