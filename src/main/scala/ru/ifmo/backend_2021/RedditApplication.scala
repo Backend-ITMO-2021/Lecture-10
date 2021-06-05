@@ -9,7 +9,6 @@ import scalatags.Text.all._
 import scalatags.generic
 import scalatags.text.Builder
 
-import java.text.DateFormat
 import java.util.Date
 
 object RedditApplication extends cask.MainRoutes {
@@ -86,6 +85,22 @@ object RedditApplication extends cask.MainRoutes {
       ujson.Obj("success" -> true, "err" -> "")
     }
   }
+
+  @cask.get("/messages/:username")
+  def getUserMessages(username: String): ujson.Obj =
+    ujson.Obj("messages" -> db.getMessages(username).map(msg => msg.message))
+
+  @cask.get("/messages/:username/stats")
+  def getUserMessagesCount(username: String): ujson.Obj =
+    ujson.Obj("stats" -> ujson.Arr("count:" + db.getMessages(username).length))
+
+  @cask.get("/stats/top")
+  def getTop(): ujson.Obj =
+    ujson.Obj("top" -> db.getUsersTop.map{case (user, count) => ujson.Obj("username" -> user, "count" -> count.toInt)})
+
+  @cask.get("/messages")
+  def getAllMessages(): ujson.Obj =
+    ujson.Obj("top" -> db.getMessages.sortBy(msg => msg.time).map(msg => ujson.Obj("id" -> msg.id, "username" -> msg.username, "message" -> msg.message, "replyTo" -> msg.replyTo)))
 
   log.debug(s"Starting at $serverUrl")
   initialize()

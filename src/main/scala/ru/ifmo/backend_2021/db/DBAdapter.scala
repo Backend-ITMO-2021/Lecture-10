@@ -2,7 +2,7 @@ package ru.ifmo.backend_2021.db
 
 import com.opentable.db.postgres.embedded.EmbeddedPostgres
 import com.zaxxer.hikari.{HikariConfig, HikariDataSource}
-import io.getquill.{LowerCase, PostgresJdbcContext}
+import io.getquill.{LowerCase, Ord, PostgresJdbcContext}
 import ru.ifmo.backend_2021.Message
 
 class DBAdapter() extends MessageDB {
@@ -29,6 +29,14 @@ class DBAdapter() extends MessageDB {
     ctx.run(query[Message])
   def getMessages(filter: String): List[Message] =
     if (filter == "") getMessages else ctx.run(query[Message].filter(_.username == lift(filter)).map(msg => Message(msg.id, msg.time, msg.username, msg.message, None)))
+  def getUsersTop: List[(String, Long)] =
+    ctx.run(
+      query[Message]
+        .groupBy(_.username)
+        .map{case (user, list) => (user, list.size)}
+        .sortBy(_._2)(Ord.desc)
+        .take(10)
+    )
   def addMessage(message: Message): Unit = {
     ctx.run(query[Message].insert(lift(message)))
   }
