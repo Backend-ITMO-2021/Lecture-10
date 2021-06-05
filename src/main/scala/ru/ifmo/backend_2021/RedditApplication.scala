@@ -56,8 +56,8 @@ object RedditApplication extends cask.MainRoutes {
       yield frag(p("#", message.id, " ", b(message.username), " ", message.message, " ", DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(ZonedDateTime.ofInstant(Instant.ofEpochMilli(message.date), ZoneId.of("UTC"))), marginLeft.:=(lvl*20)), messageList(db.getMessages.filter(_.replyTo.getOrElse(0) == message.id), lvl+1))
   }
 
-  def filterMessageList(filter: Option[String], DBbuf: List[Message] = db.getMessages, lvl: Int = 0): generic.Frag[Builder, String] = {
-    if (filter.isEmpty){
+  def filterMessageList(filter: Option[String] = None, DBbuf: List[Message] = db.getMessages, lvl: Int = 0): generic.Frag[Builder, String] = {
+    if (filter.isEmpty || filter.getOrElse("") == ""){
       return messageList()
     }
     if (!DBbuf.exists(_.username == filter.get)) return frag()
@@ -78,7 +78,7 @@ object RedditApplication extends cask.MainRoutes {
     else if (name.contains("#")) ujson.Obj("success" -> false, "err" -> "Username cannot contain '#'")
     else synchronized {
       db.addMessage(Message(db.getMessages.length+1, name, msg, replyTo.toIntOption, new Date().getTime))
-      connectionPool.sendAll(Ws.Text(messageList().render))
+      connectionPool.sendAll(connection => Ws.Text(filterMessageList(connectionPool.getFilter(connection)).render))
       ujson.Obj("success" -> true, "err" -> "")
     }
   }
