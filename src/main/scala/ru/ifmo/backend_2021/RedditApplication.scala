@@ -88,33 +88,25 @@ object RedditApplication extends cask.MainRoutes {
   )
   @cask.get("/stats/top")
   def getTopCountUserMessages(): ujson.Obj = ujson.Obj(
-    "top" -> chattersToJson(ListMap(
-      db.getMessages.groupBy(message => message.username)
-      .map{case (username, message) => (username, message.size)}
-      .toList.sortWith(_._2 > _._2):_*)
-      .take(10)
-  ))
-
+    "top" -> chattersToJson(db.getTopUsers)
+  )
   @cask.get("/messages/:user")
   def getAllUserMessages(user: String): ujson.Obj = ujson.Obj(
-    "messages" -> messagesToJson(db.getMessages.filter(_.username == user))
+    "messages" -> messagesToJson(db.getUserMessages(user))
   )
+
   @cask.get("/messages/:user/stats")
   def getCountUserMessages(user: String): ujson.Obj = ujson.Obj(
-    "stats" -> List(ujson.Obj("count" -> db.getMessages.count(_.username == user)))
+    "stats" -> List(ujson.Obj("count" -> db.getCountMessages(user)))
   )
+
   @cask.postJson("/messages")
-  def postMsg(from: String = "", to: String = ""): List[ujson.Obj] = dateFilterMessages(from, to)
+  def postMsg(from: Long = 0, to: Long = Long.MaxValue): List[ujson.Obj] = messagesToJson(db.dateFilterMessages(from, to))
 
-
-  def dateFilterMessages(from: String = "", to: String = ""): List[ujson.Obj] = {
-    messagesToJson(db.getMessages.filter(_.date > from.toLong).filter(_.date < to.toLong))
-  }
-
-  def chattersToJson(users: Map[String, Int]): Iterable[ujson.Obj] = {
+  def chattersToJson(users: List[(String, Long)]): Iterable[ujson.Obj] = {
     for ((username, count) <- users) yield chatterToJson(username, count)
   }
-  def chatterToJson(username: String, count: Int): ujson.Obj = ujson.Obj(
+  def chatterToJson(username: String, count: Long): ujson.Obj = ujson.Obj(
     "username" -> username,
     "count" -> count
   )
