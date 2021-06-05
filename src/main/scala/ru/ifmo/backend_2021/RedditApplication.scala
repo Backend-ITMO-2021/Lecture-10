@@ -50,7 +50,7 @@ object RedditApplication extends cask.MainRoutes {
     try {
       s.toInt
     } catch {
-      case e: NumberFormatException => 0
+      case e: NumberFormatException => -1
     }
   }
 
