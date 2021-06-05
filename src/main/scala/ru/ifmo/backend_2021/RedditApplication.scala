@@ -74,7 +74,6 @@ object RedditApplication extends cask.MainRoutes {
   @cask.postJson("/")
   def postChatMsg(name: String, msg: String, replyTo: String = ""): ujson.Obj = {
     log.debug(name, msg, replyTo)
-    println(replyTo, toInt(replyTo))
     if (name == "") ujson.Obj("success" -> false, "err" -> "Name cannot be empty")
     else if (msg == "") ujson.Obj("success" -> false, "err" -> "Message cannot be empty")
     else if (name.contains("#")) ujson.Obj("success" -> false, "err" -> "Username cannot contain '#'")
@@ -101,7 +100,7 @@ object RedditApplication extends cask.MainRoutes {
 
   @cask.get("/messages")
   def getAllMessages(): ujson.Obj =
-    ujson.Obj("top" -> db.getMessages.sortBy(msg => msg.time).map(msg => ujson.Obj("id" -> msg.id, "username" -> msg.username, "message" -> msg.message, "replyTo" -> msg.replyTo)))
+    ujson.Obj("messages" -> db.getMessages.sortBy(msg => msg.time).map(msg => ujson.Obj("id" -> msg.id, "username" -> msg.username, "message" -> msg.message, "replyTo" -> msg.replyTo)))
 
   log.debug(s"Starting at $serverUrl")
   initialize()
