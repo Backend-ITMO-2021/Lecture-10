@@ -78,7 +78,7 @@ object RedditApplication extends cask.MainRoutes {
     else if (msg == "") ujson.Obj("success" -> false, "err" -> "Message cannot be empty")
     else if (name.contains("#")) ujson.Obj("success" -> false, "err" -> "Username cannot contain '#'")
     else if (replyTo.contains("#")) ujson.Obj("success" -> false, "err" -> "Id to replying must be without '#'")
-    else if (toInt(replyTo) > db.getMessages.length) ujson.Obj("success" -> false, "err" -> "Message with given id to replying doesn't exist")
+    else if (toInt(replyTo) > db.getMessages.length || toInt(replyTo) <= 0) ujson.Obj("success" -> false, "err" -> "Message with given id to replying doesn't exist")
     else synchronized {
       db.addMessage(Message(db.getMessages.length + 1, new Date(), name, msg, replyTo.toIntOption))
       connectionPool.sendAll(connection => Ws.Text(messageList(connectionPool.getFilter(connection)).render))
