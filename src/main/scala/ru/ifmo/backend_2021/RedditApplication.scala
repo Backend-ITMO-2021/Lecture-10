@@ -58,7 +58,7 @@ object RedditApplication extends cask.MainRoutes {
     def addFollowing(depth: Int, messages: List[Message]): generic.Frag[Builder, String] = {
       if (messages.nonEmpty) {
         for (message <- messages)
-          yield frag(p(css("white-space") := "pre", "   ".repeat(depth), "#", message.id, " ", b(message.username), " ", message.message),
+          yield frag(p(css("white-space") := "pre", List.fill(depth)("   ").mkString, "#", message.id, " ", b(message.username), " ", message.message),
           addFollowing(depth + 1, db.getMessages(filter.getOrElse("")).filter(_.replyTo == Option(message.id))))
       }
     }
